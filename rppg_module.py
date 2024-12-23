@@ -40,6 +40,8 @@ def band_pass_filter(data, lowcut, highcut, fs, order=5):
     low = lowcut / nyquist
     high = highcut / nyquist
     b, a = butter(order, [low, high], btype='band')
+    if len(data) <= max(len(a), len(b)):
+        return np.array(data)  # Return raw data if too short for filtering
     return filtfilt(b, a, data)
 
 def extract_rgb_signals(frame, bbox):
@@ -96,6 +98,44 @@ def process_rppg_from_webcam():
                 # Draw bounding box on the frame
                 cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 0), 2)
 
+        # Real-time visualization of signal intensity
+        if len(g_signals) > 33:  # Ensure enough data for filtering
+            graph_height, graph_width = 100, 300
+            graph_top_left = (10, frame.shape[0] - graph_height - 10)
+            overlay = frame.copy()
+
+            # Apply band-pass filter
+            filtered_signal = band_pass_filter(g_signals, lowcut=0.8, highcut=3.0, fs=30)
+
+            # Normalize filtered signal to scale it properly for visualization
+            min_signal = np.min(filtered_signal)
+            max_signal = np.max(filtered_signal)
+            range_signal = max_signal - min_signal
+
+            if range_signal > 0:
+                # Normalize the signal to the range [0, graph_height]
+                scaled_signal = (filtered_signal - min_signal) / range_signal * graph_height
+            else:
+                scaled_signal = np.zeros_like(filtered_signal)
+
+            # Only visualize the last 300 frames
+            if len(scaled_signal) > 300:
+                scaled_signal = scaled_signal[-300:]
+
+            for i in range(1, len(scaled_signal)):
+                start_point = (graph_top_left[0] + i - 1, graph_top_left[1] + graph_height - int(scaled_signal[i - 1]))
+                end_point = (graph_top_left[0] + i, graph_top_left[1] + graph_height - int(scaled_signal[i]))
+                cv2.line(overlay, start_point, end_point, (0, 255, 0), 1)
+
+            # Draw visualization box
+            cv2.rectangle(frame, graph_top_left, (graph_top_left[0] + graph_width, graph_top_left[1] + graph_height), (255, 255, 255), -1)
+            frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
+
+            # Add text for live heart rate calculation
+            peaks, _ = find_peaks(filtered_signal, prominence=0.5)
+            heart_rate = 60 * len(peaks) / (len(filtered_signal) / 30) if len(filtered_signal) > 0 else 0
+            cv2.putText(frame, f"Heart Rate: {heart_rate:.2f} bpm", (15, graph_top_left[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
         # Display the frame
         cv2.imshow('rPPG Tracking', frame)
 
@@ -105,11 +145,9 @@ def process_rppg_from_webcam():
     cap.release()
     cv2.destroyAllWindows()
 
-    # Process signals for rPPG
-    if len(r_signals) > 0:
-        process_rppg_signals(r_signals, g_signals, b_signals)
+    plotting_rppg_signals(r_signals, g_signals, b_signals)
 
-def process_rppg_signals(r_signals, g_signals, b_signals):
+def plotting_rppg_signals(r_signals, g_signals, b_signals):
     """
     Processes the extracted RGB signals to calculate and visualize the rPPG signal.
 
@@ -135,11 +173,20 @@ def process_rppg_signals(r_signals, g_signals, b_signals):
     plt.figure(figsize=(10, 6))
     plt.plot(filtered_signal, label='Filtered rPPG Signal', color='green')
     plt.plot(peaks, filtered_signal[peaks], 'x', label='Peaks', color='red')
+
+    # Display heart rate (bpm) in the title
     plt.title(f'rPPG Signal - Heart Rate: {heart_rate:.2f} bpm')
+
+    # X-axis represents frames, Y-axis represents signal intensity
     plt.xlabel('Frame')
-    plt.ylabel('Intensity')
+    plt.ylabel('Signal Intensity')
+
+    # Add legend to explain the plot
     plt.legend()
+
+    # Show the plot
     plt.show()
+
 
 if __name__ == "__main__":
     process_rppg_from_webcam()

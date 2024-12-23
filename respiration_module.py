@@ -6,6 +6,7 @@ from scipy.signal import butter, filtfilt, medfilt
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR)
 import requests
+import matplotlib.pyplot as plt
 
 def download_pose_model():
     """
@@ -48,7 +49,7 @@ def initialize_pose_landmarker():
 
     return PoseLandmarker.create_from_options(options)
 
-def get_respiration_roi(image, pose_landmarker, scale_factor=1.5):
+def get_respiration_roi(image, pose_landmarker, scale_factor=0.7):
     """
     Detects the shoulders and returns the ROI for respiration signal extraction.
 
@@ -77,7 +78,8 @@ def get_respiration_roi(image, pose_landmarker, scale_factor=1.5):
     center_y = int((left_shoulder.y + right_shoulder.y) * height / 2)
 
     # Adaptive ROI size based on frame dimensions and scaling factor
-    x_size, y_size = 100, 125
+    x_size = int(abs(left_shoulder.x - right_shoulder.x) * width * scale_factor)
+    y_size = x_size
 
     left_x = max(0, center_x - x_size)
     right_x = min(width, center_x + x_size)
@@ -140,9 +142,38 @@ def process_respiration_from_webcam():
                 filtered_signal = median_filter(respiration_signal, kernel_size=5)
                 filtered_signal = low_pass_filter(filtered_signal, cutoff=0.5, fs=30)
 
-                for i in range(len(filtered_signal) - 1):
-                    cv2.line(frame, (10 + i, 400 - int(filtered_signal[i])), 
-                                    (10 + i + 1, 400 - int(filtered_signal[i + 1])), (0, 255, 0), 2)
+                # Real-time visualization of signal intensity
+                if len(filtered_signal) > 33:  # Ensure enough data for filtering
+                    graph_height, graph_width = 100, 300
+                    graph_top_left = (10, frame.shape[0] - graph_height - 350)
+                    overlay = frame.copy()
+
+                    # Normalize filtered signal to scale it properly for visualization
+                    min_signal = np.min(filtered_signal)
+                    max_signal = np.max(filtered_signal)
+                    range_signal = max_signal - min_signal
+
+                    if range_signal > 0:
+                        # Normalize the signal to the range [0, graph_height]
+                        scaled_signal = (filtered_signal - min_signal) / range_signal * graph_height
+                    else:
+                        scaled_signal = np.zeros_like(filtered_signal)
+
+                    if len(scaled_signal) > 300:
+                        scaled_signal = scaled_signal[-300:]
+
+                    for i in range(1, min(len(scaled_signal), graph_width)):
+                        start_point = (graph_top_left[0] + i - 1, graph_top_left[1] + graph_height - int(scaled_signal[i - 1]))
+                        end_point = (graph_top_left[0] + i, graph_top_left[1] + graph_height - int(scaled_signal[i]))
+                        cv2.line(overlay, start_point, end_point, (0, 255, 0), 1)
+
+                    # Draw visualization box
+                    cv2.rectangle(frame, graph_top_left, (graph_top_left[0] + graph_width, graph_top_left[1] + graph_height), (255, 255, 255), -1)
+                    frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
+
+                    # Add text for live respiration signal reading
+                    cv2.putText(frame, f"Respiration Intensity: {filtered_signal[-1]:.2f}", 
+                                (15, graph_top_left[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
             cv2.rectangle(frame, (left_x, top_y), (right_x, bottom_y), (255, 0, 0), 2)
             cv2.circle(frame, center, 5, (0, 255, 0), -1)
@@ -157,6 +188,21 @@ def process_respiration_from_webcam():
 
     cap.release()
     cv2.destroyAllWindows()
+
+    # Plot the final signal
+    if len(respiration_signal) > 0:
+        filtered_signal = median_filter(respiration_signal, kernel_size=5)
+        filtered_signal = low_pass_filter(filtered_signal, cutoff=0.5, fs=30)
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(filtered_signal, label="Respiration Signal", color="green")
+        plt.title("Respiration Signal Over Time")
+        plt.xlabel("Frame")
+        plt.ylabel("Intensity")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
 
 if __name__ == "__main__":
     process_respiration_from_webcam()

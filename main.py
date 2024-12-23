@@ -1,5 +1,5 @@
-from respiration_module import process_respiration_from_webcam
-from rppg_module import process_rppg_from_webcam
+import respiration_module 
+import rppg_module
 import threading
 
 def main():
@@ -7,8 +7,8 @@ def main():
     Runs both the respiration and rPPG processing in parallel using threading.
     """
     # Create threads for each signal processing function
-    respiration_thread = threading.Thread(target=process_respiration_from_webcam)
-    rppg_thread = threading.Thread(target=process_rppg_from_webcam)
+    respiration_thread = threading.Thread(target=respiration_module.process_respiration_from_webcam)
+    rppg_thread = threading.Thread(target=rppg_module.process_rppg_from_webcam)
 
     # Start threads
     respiration_thread.start()
