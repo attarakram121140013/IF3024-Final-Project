@@ -8,7 +8,7 @@
                 Github ID     :  attarakram121140013 
   > Natasya Ate Malem Bangun  :  121140052
                 Github ID     :  Natasyaamb 
-  
+  ```
 * Logbook mingguan yang mencatat progress dan update project
   
 * Instruksi instalasi dan penggunaan program
