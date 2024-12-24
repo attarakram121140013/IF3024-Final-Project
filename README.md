@@ -26,9 +26,10 @@
 # IF3024-Final-Project
 
 ## 🎵 Digital Signal Processing Project
+```
 > Big Tasks for Digital Signal Processing Project.
 > Lecturer  : Martin C.T. Manullang S.T., M.T.
-
+```
 A sophisticated audio processing application that implements real-time DSP algorithms for signal analysis and manipulation. Our project focuses on delivering high-quality audio processing capabilities with an intuitive user interface.
 
 ## 🎯 Project Objectives
