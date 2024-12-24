@@ -8,11 +8,14 @@ def low_pass_filter(data, cutoff, fs, order=5):
     """
     Applies a low-pass Butterworth filter to the input signal.
 
+    This function implements a low-pass filter using the Butterworth design, which attenuates frequencies 
+    higher than the specified cutoff frequency while allowing lower frequencies to pass.
+
     Args:
         data (np.ndarray): Input signal.
-        cutoff (float): Cutoff frequency in Hz.
-        fs (float): Sampling frequency in Hz.
-        order (int): Order of the filter.
+        cutoff (float): Cutoff frequency in Hz. Frequencies above this value are attenuated.
+        fs (float): Sampling frequency in Hz. Used to calculate the Nyquist frequency.
+        order (int): Order of the filter (default is 5). A higher order results in a sharper cutoff.
 
     Returns:
         np.ndarray: Filtered signal.
@@ -26,12 +29,15 @@ def band_pass_filter(data, lowcut, highcut, fs, order=5):
     """
     Applies a band-pass Butterworth filter to the input signal.
 
+    This function implements a band-pass filter that allows frequencies within the specified range 
+    (between `lowcut` and `highcut`) to pass through while attenuating frequencies outside this range.
+
     Args:
         data (np.ndarray): Input signal.
-        lowcut (float): Lower cutoff frequency in Hz.
-        highcut (float): Upper cutoff frequency in Hz.
-        fs (float): Sampling frequency in Hz.
-        order (int): Order of the filter.
+        lowcut (float): Lower cutoff frequency in Hz. Frequencies below this value are attenuated.
+        highcut (float): Upper cutoff frequency in Hz. Frequencies above this value are attenuated.
+        fs (float): Sampling frequency in Hz. Used to calculate the Nyquist frequency.
+        order (int): Order of the filter (default is 5). A higher order results in a sharper cutoff.
 
     Returns:
         np.ndarray: Filtered signal.
@@ -48,12 +54,17 @@ def extract_rgb_signals(frame, bbox):
     """
     Extracts the average RGB signals from the bounding box region of the frame.
 
+    This function calculates the average signal intensity for each of the Red, Green, and Blue channels
+    in the specified bounding box region of the input frame.
+
     Args:
         frame (np.ndarray): Input video frame.
-        bbox (tuple): Bounding box coordinates (x, y, width, height).
+        bbox (tuple): Bounding box coordinates (x, y, width, height), where (x, y) is the top-left 
+                      corner and (width, height) defines the dimensions of the bounding box.
 
     Returns:
-        tuple: Average RGB values as (R, G, B).
+        tuple: Average RGB values as (R, G, B), representing the average signal intensities for the 
+               respective channels.
     """
     x, y, width, height = bbox
     roi = frame[y:y + height, x:x + width]
@@ -65,6 +76,16 @@ def extract_rgb_signals(frame, bbox):
 def process_rppg_from_webcam(video):
     """
     Processes rPPG signals in real-time from a webcam feed.
+
+    This function captures frames from a webcam feed, detects faces using MediaPipe's Face Detection 
+    module, and extracts RGB signals from the face region. It visualizes the heart rate in real-time 
+    by filtering the extracted green channel signal and detecting peaks.
+
+    Args:
+        video (cv2.VideoCapture): The video capture object for the webcam feed.
+
+    Returns:
+        None
     """
     cap = video
     mp_face_detection = mp.solutions.face_detection
@@ -88,7 +109,7 @@ def process_rppg_from_webcam(video):
                 y = int(bboxC.ymin * h)
                 width = int(bboxC.width * w)
                 height = int(bboxC.height * h)
-
+                
                 # Extract RGB signals from the face bounding box
                 r, g, b = extract_rgb_signals(frame, (x, y, width, height))
                 r_signals.append(r)
@@ -105,7 +126,7 @@ def process_rppg_from_webcam(video):
             overlay = frame.copy()
 
             # Apply band-pass filter
-            filtered_signal = band_pass_filter(g_signals, lowcut=0.8, highcut=3.0, fs=30)
+            filtered_signal = band_pass_filter(g_signals, lowcut=0.7, highcut=2.5, fs=30)
 
             # Normalize filtered signal to scale it properly for visualization
             min_signal = np.min(filtered_signal)
@@ -151,18 +172,24 @@ def plotting_rppg_signals(r_signals, g_signals, b_signals):
     """
     Processes the extracted RGB signals to calculate and visualize the rPPG signal.
 
+    This function applies a band-pass filter to the green channel signals, calculates the heart rate 
+    by detecting peaks in the filtered signal, and plots the rPPG signal with detected peaks.
+
     Args:
         r_signals (list): Red channel signals.
         g_signals (list): Green channel signals.
         b_signals (list): Blue channel signals.
+
+    Returns:
+        None
     """
     # Stack RGB signals
     rgb_signals = np.array([r_signals, g_signals, b_signals])
 
     # Band-pass filter for the green channel (dominant in rPPG)
     fs = 30  # Assuming 30 FPS
-    lowcut = 0.8  # Lower bound for heart rate frequencies
-    highcut = 3.0  # Upper bound for heart rate frequencies
+    lowcut = 0.7  # Lower bound for heart rate frequencies
+    highcut = 2.5  # Upper bound for heart rate frequencies
     filtered_signal = band_pass_filter(rgb_signals[1], lowcut, highcut, fs)
 
     # Detect peaks for heart rate calculation
