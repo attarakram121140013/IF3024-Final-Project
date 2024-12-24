@@ -62,11 +62,11 @@ def extract_rgb_signals(frame, bbox):
     b_signal = np.mean(roi[:, :, 0])  # Blue channel
     return r_signal, g_signal, b_signal
 
-def process_rppg_from_webcam():
+def process_rppg_from_webcam(video):
     """
     Processes rPPG signals in real-time from a webcam feed.
     """
-    cap = cv2.VideoCapture(0)  # Open webcam
+    cap = video
     mp_face_detection = mp.solutions.face_detection
     face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
 
@@ -189,4 +189,4 @@ def plotting_rppg_signals(r_signals, g_signals, b_signals):
 
 
 if __name__ == "__main__":
-    process_rppg_from_webcam()
+    process_rppg_from_webcam(cv2.VideoCapture(0))

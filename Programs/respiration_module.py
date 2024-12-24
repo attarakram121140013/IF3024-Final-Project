@@ -8,6 +8,38 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 import requests
 import matplotlib.pyplot as plt
 
+#Filters
+def low_pass_filter(data, cutoff, fs, order=5):
+    """
+    Applies a low-pass Butterworth filter to the input signal.
+
+    Args:
+        data (np.ndarray): Input signal.
+        cutoff (float): Cutoff frequency in Hz.
+        fs (float): Sampling frequency in Hz.
+        order (int): Order of the filter.
+
+    Returns:
+        np.ndarray: Filtered signal.
+    """
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return filtfilt(b, a, data)
+
+def median_filter(data, kernel_size=5):
+    """
+    Applies a median filter to the input signal.
+
+    Args:
+        data (np.ndarray): Input signal.
+        kernel_size (int): Size of the median filter window.
+
+    Returns:
+        np.ndarray: Filtered signal.
+    """
+    return medfilt(data, kernel_size)
+
 def download_pose_model():
     """
     Downloads the MediaPipe Pose Landmarker model if not already available.
@@ -88,42 +120,11 @@ def get_respiration_roi(image, pose_landmarker, scale_factor=0.7):
 
     return (left_x, top_y, right_x, bottom_y, (center_x, center_y))
 
-def low_pass_filter(data, cutoff, fs, order=5):
-    """
-    Applies a low-pass Butterworth filter to the input signal.
-
-    Args:
-        data (np.ndarray): Input signal.
-        cutoff (float): Cutoff frequency in Hz.
-        fs (float): Sampling frequency in Hz.
-        order (int): Order of the filter.
-
-    Returns:
-        np.ndarray: Filtered signal.
-    """
-    nyquist = 0.5 * fs
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return filtfilt(b, a, data)
-
-def median_filter(data, kernel_size=5):
-    """
-    Applies a median filter to the input signal.
-
-    Args:
-        data (np.ndarray): Input signal.
-        kernel_size (int): Size of the median filter window.
-
-    Returns:
-        np.ndarray: Filtered signal.
-    """
-    return medfilt(data, kernel_size)
-
-def process_respiration_from_webcam():
+def process_respiration_from_webcam(video):
     """
     Processes respiration signal in real-time from a webcam feed.
     """
-    cap = cv2.VideoCapture(0)  # Open webcam
+    cap = video
     pose_landmarker = initialize_pose_landmarker()
     respiration_signal = []
 
@@ -189,6 +190,9 @@ def process_respiration_from_webcam():
     cap.release()
     cv2.destroyAllWindows()
 
+    plotting_respiration_signals(respiration_signal)
+
+def plotting_respiration_signals(respiration_signal):
     # Plot the final signal
     if len(respiration_signal) > 0:
         filtered_signal = median_filter(respiration_signal, kernel_size=5)
@@ -203,6 +207,5 @@ def process_respiration_from_webcam():
         plt.grid()
         plt.show()
 
-
 if __name__ == "__main__":
-    process_respiration_from_webcam()
+    process_respiration_from_webcam(cv2.VideoCapture(0))
