@@ -1,3 +1,9 @@
+"""
+Digital Signal Processing - Final Project
+Attar Akram Abdillah (121140013)
+Natasya Ate Malem Bangun (121140052)
+"""
+
 import os
 import cv2
 import numpy as np
