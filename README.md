@@ -5,9 +5,9 @@
 * Nama lengkap, NIM, dan ID GitHub setiap anggota
   ```
   > Attar Akram               :  121140013
-                id github     :  attarakram121140013 
+                Github ID     :  attarakram121140013 
   > Natasya Ate Malem Bangun  :  121140052
-                id github     :  Natasyaamb 
+                Github ID     :  Natasyaamb 
   
 * Logbook mingguan yang mencatat progress dan update project
   
