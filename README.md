@@ -6,6 +6,7 @@
 ## 🎵 Digital Signal Processing Project
 ```
 > Final Tasks for Digital Signal Processing Subject.
+> Subject Code IF3024
 > Lecturer  : Martin C.T. Manullang S.T., M.T.
 ```
 A sophisticated signal processing programs that implements real-time DSP algorithms for rPPG signal and respiration signal analysis. Our project focuses on delivering acurate signal processing capabilities within this program.
